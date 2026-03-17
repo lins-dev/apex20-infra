@@ -1,8 +1,12 @@
 # Apex20 — Development Tooling Image
 # Provides Go, Node.js, golangci-lint, buf and protobuf plugins
+# Runs as the host user to avoid bind mount permission issues
 FROM golang:1.26-bookworm AS go-base
 
 FROM node:24-bookworm
+
+ARG UID=1000
+ARG GID=1000
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -14,23 +18,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy Go from official image
 COPY --from=go-base /usr/local/go/ /usr/local/go/
 ENV PATH="/usr/local/go/bin:${PATH}"
-ENV GOPATH="/go"
-ENV PATH="${GOPATH}/bin:${PATH}"
 
-# Install golangci-lint compiled with Go 1.26
-RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+# Create group and user matching the host UID/GID
+RUN groupadd --gid ${GID} dev 2>/dev/null || true && \
+    useradd --uid ${UID} --gid ${GID} --create-home --shell /bin/bash dev 2>/dev/null || true
+
+# Set GOPATH under the dev home so the user can write to it
+ENV GOPATH="/home/dev/go"
+ENV PATH="/home/dev/go/bin:${PATH}"
+RUN mkdir -p /home/dev/go && chown -R ${UID}:${GID} /home/dev/go
+
+USER dev
+
+# Install Go tools as dev user (written to GOPATH = /home/dev/go)
+RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
+    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
+    go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
 
 # Install Buf CLI
-RUN BIN="/usr/local/bin" && \
-    VERSION="1.30.0" && \
-    curl -sSL \
-    "https://github.com/bufbuild/buf/releases/download/v${VERSION}/buf-$(uname -s)-$(uname -m)" \
-    -o "${BIN}/buf" && \
-    chmod +x "${BIN}/buf"
-
-# Install protobuf Go plugins
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
-    go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+RUN curl -sSL \
+    "https://github.com/bufbuild/buf/releases/download/v1.30.0/buf-$(uname -s)-$(uname -m)" \
+    -o /home/dev/go/bin/buf && \
+    chmod +x /home/dev/go/bin/buf
 
 WORKDIR /workspace
 

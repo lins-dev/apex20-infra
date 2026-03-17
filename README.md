@@ -6,13 +6,13 @@ Contém um único Docker Compose com todos os serviços necessários para rodar 
 
 ## Serviços
 
-| Serviço      | Imagem                  | Porta local |
+| Serviço    | Imagem                 | Porta local |
 |---|---|---|
-| PostgreSQL   | postgres:16-alpine      | 5420        |
-| Redis        | redis:7-alpine          | 6320        |
-| Prometheus   | prom/prometheus:latest  | 9020        |
-| Grafana      | grafana/grafana:latest  | 3030        |
-| Tooling      | Dockerfile.dev          | —           |
+| PostgreSQL | postgres:16-alpine     | 5420        |
+| Redis      | redis:7-alpine         | 6320        |
+| Prometheus | prom/prometheus:latest | 9020        |
+| Grafana    | grafana/grafana:latest | 3030        |
+| Tooling    | Dockerfile.dev         | —           |
 
 ## Pré-requisitos
 
@@ -21,8 +21,8 @@ Contém um único Docker Compose com todos os serviços necessários para rodar 
 ## Subir a infraestrutura
 
 ```bash
-# Todos os serviços
-docker compose up -d
+# Todos os serviços (usa make para passar UID/GID automaticamente)
+make up
 
 # Apenas infra (sem tooling)
 docker compose up -d db cache prometheus grafana
@@ -30,20 +30,10 @@ docker compose up -d db cache prometheus grafana
 
 ## Acessar os serviços
 
-- **Grafana:** http://localhost:3030 (admin / admin)
+- **Grafana:** http://localhost:3030 — `admin / admin`
 - **Prometheus:** http://localhost:9020
 - **PostgreSQL:** `postgres://apex20:password@localhost:5420/apex20`
 - **Redis:** `redis://localhost:6320`
-
-## Container de tooling
-
-O serviço `tooling` disponibiliza Go, Node.js, golangci-lint, buf e plugins protobuf:
-
-```bash
-# Executar um comando pontual
-docker compose exec tooling golangci-lint run ./...
-docker compose exec tooling buf generate
-```
 
 ## Variáveis de ambiente dos projetos
 
@@ -55,3 +45,16 @@ REDIS_URL=redis://localhost:6320
 ```
 
 Copie o `.env.example` de cada projeto e ajuste conforme necessário.
+
+## Container de tooling
+
+O serviço `tooling` disponibiliza Go 1.26, Node.js 24, golangci-lint, buf e plugins protobuf.
+Monta todos os repositórios via `..:/workspace` e roda com o mesmo `UID/GID` do host — sem problemas de permissão em arquivos gerados.
+
+```bash
+# Executar comandos no container
+docker compose exec tooling golangci-lint run ./apex20-backend/...
+docker compose exec tooling buf generate
+```
+
+> Use sempre `make up` ao invés de `docker compose up -d` para garantir que o `UID/GID` do host seja passado corretamente para o build do container de tooling.

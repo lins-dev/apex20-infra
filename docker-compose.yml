@@ -58,12 +58,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
     container_name: apex20-tooling
+    user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ..:/workspace
+      - go-cache:/home/dev/go
     working_dir: /workspace
     command: sleep infinity
 
 volumes:
   pgdata:
   grafana-data:
+  go-cache:
