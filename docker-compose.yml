@@ -1,0 +1,69 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: apex20-db
+    environment:
+      POSTGRES_USER: apex20
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: apex20
+    ports:
+      - "5420:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apex20"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  cache:
+    image: redis:7-alpine
+    container_name: apex20-cache
+    ports:
+      - "6320:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: apex20-prometheus
+    ports:
+      - "9020:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - db
+      - cache
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: apex20-grafana
+    ports:
+      - "3030:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./infra/grafana/dashboards:/etc/grafana/provisioning/dashboards
+    depends_on:
+      - prometheus
+
+  tooling:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: apex20-tooling
+    volumes:
+      - ..:/workspace
+    working_dir: /workspace
+    command: sleep infinity
+
+volumes:
+  pgdata:
+  grafana-data:

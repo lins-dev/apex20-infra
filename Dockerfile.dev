@@ -1,0 +1,37 @@
+# Apex20 — Development Tooling Image
+# Provides Go, Node.js, golangci-lint, buf and protobuf plugins
+FROM golang:1.26-bookworm AS go-base
+
+FROM node:24-bookworm
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Go from official image
+COPY --from=go-base /usr/local/go/ /usr/local/go/
+ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH="/go"
+ENV PATH="${GOPATH}/bin:${PATH}"
+
+# Install golangci-lint compiled with Go 1.26
+RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# Install Buf CLI
+RUN BIN="/usr/local/bin" && \
+    VERSION="1.30.0" && \
+    curl -sSL \
+    "https://github.com/bufbuild/buf/releases/download/v${VERSION}/buf-$(uname -s)-$(uname -m)" \
+    -o "${BIN}/buf" && \
+    chmod +x "${BIN}/buf"
+
+# Install protobuf Go plugins
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
+    go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+
+WORKDIR /workspace
+
+CMD ["sleep", "infinity"]
