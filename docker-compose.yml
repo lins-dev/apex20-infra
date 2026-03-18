@@ -54,6 +54,20 @@ services:
     depends_on:
       - prometheus
 
+  web:
+    image: node:24-bookworm-slim
+    container_name: apex20-web
+    working_dir: /app
+    volumes:
+      - ../apex20-web:/app
+      - web-node-modules:/app/node_modules
+    ports:
+      - "3020:3000"
+    environment:
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+    command: sh -c "npm install && npx next dev -H 0.0.0.0 --webpack"
+
   tooling:
     build:
       context: .
@@ -73,3 +87,4 @@ volumes:
   pgdata:
   grafana-data:
   go-cache:
+  web-node-modules:

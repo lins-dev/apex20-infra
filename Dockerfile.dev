@@ -19,9 +19,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=go-base /usr/local/go/ /usr/local/go/
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-# Create group and user matching the host UID/GID
-RUN groupadd --gid ${GID} dev 2>/dev/null || true && \
-    useradd --uid ${UID} --gid ${GID} --create-home --shell /bin/bash dev 2>/dev/null || true
+# Create group and user matching the host UID/GID.
+# If the GID/UID already exists (e.g. node:1000 in the base image), rename it to dev.
+RUN existing_group=$(getent group ${GID} | cut -d: -f1); \
+    if [ -z "$existing_group" ]; then \
+      groupadd --gid ${GID} dev; \
+    elif [ "$existing_group" != "dev" ]; then \
+      groupmod -n dev "$existing_group"; \
+    fi && \
+    existing_user=$(getent passwd ${UID} | cut -d: -f1); \
+    if [ -z "$existing_user" ]; then \
+      useradd --uid ${UID} --gid ${GID} --create-home --shell /bin/bash dev; \
+    elif [ "$existing_user" != "dev" ]; then \
+      usermod -l dev -d /home/dev -m "$existing_user" && usermod -s /bin/bash dev; \
+    fi
 
 # Set GOPATH under the dev home so the user can write to it
 ENV GOPATH="/home/dev/go"
