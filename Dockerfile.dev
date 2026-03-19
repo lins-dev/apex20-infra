@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     git \
     ca-certificates \
+    direnv \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Go from official image
@@ -41,10 +42,14 @@ RUN mkdir -p /home/dev/go && chown -R ${UID}:${GID} /home/dev/go
 
 USER dev
 
+# Configure direnv hook for bash
+RUN echo 'eval "$(direnv hook bash)"' >> /home/dev/.bashrc
+
 # Install Go tools as dev user (written to GOPATH = /home/dev/go)
 RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
     go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
-    go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+    go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest && \
+    go install github.com/jackc/tern/v2@latest
 
 # Install Buf CLI
 RUN curl -sSL \
