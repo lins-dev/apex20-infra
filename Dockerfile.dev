@@ -1,5 +1,5 @@
 # Apex20 — Development Tooling Image
-# Provides Go, Node.js, golangci-lint, buf and protobuf plugins
+# Provides Go, Node.js, golangci-lint, buf, protobuf plugins and sqlc
 # Runs as the host user to avoid bind mount permission issues
 FROM golang:1.26-bookworm AS go-base
 
@@ -39,12 +39,17 @@ ENV GOPATH="/home/dev/go"
 ENV PATH="/home/dev/go/bin:${PATH}"
 RUN mkdir -p /home/dev/go && chown -R ${UID}:${GID} /home/dev/go
 
+# Install TypeScript protoc plugins globally (as root, before USER switch)
+RUN npm install -g @bufbuild/protoc-gen-es @connectrpc/protoc-gen-connect-es
+
 USER dev
 
 # Install Go tools as dev user (written to GOPATH = /home/dev/go)
 RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
     go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
-    go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+    go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest && \
+    go install github.com/jackc/tern/v2@latest && \
+    go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 
 # Install Buf CLI
 RUN curl -sSL \
