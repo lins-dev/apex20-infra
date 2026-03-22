@@ -16,6 +16,23 @@ services:
       timeout: 5s
       retries: 5
 
+  db-test:
+    image: postgres:16-alpine
+    container_name: apex20-db-test
+    environment:
+      POSTGRES_USER: apex20
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: apex20_test
+    ports:
+      - "5421:5432"
+    volumes:
+      - pgdata-test:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apex20"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   cache:
     image: redis:7-alpine
     container_name: apex20-cache
@@ -81,10 +98,19 @@ services:
       - ..:/workspace
       - go-cache:/home/dev/go
     working_dir: /workspace
+    environment:
+      DATABASE_URL: postgres://apex20:password@db-test:5432/apex20_test
+      REDIS_URL: redis://cache:6379
+    depends_on:
+      db-test:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
     command: sleep infinity
 
 volumes:
   pgdata:
+  pgdata-test:
   grafana-data:
   go-cache:
   web-node-modules:
