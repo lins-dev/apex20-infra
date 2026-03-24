@@ -85,6 +85,32 @@ services:
       - CHOKIDAR_USEPOLLING=true
     command: sh -c "npm install && npx next dev -H 0.0.0.0 --webpack"
 
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: apex20-backend
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ../apex20-backend:/workspace/apex20-backend
+      - go-cache:/home/dev/go
+    working_dir: /workspace/apex20-backend
+    ports:
+      - "8787:8787"
+    environment:
+      DATABASE_URL: postgres://apex20:password@db:5432/apex20?sslmode=disable
+      REDIS_URL: redis://cache:6379
+      PORT: "8787"
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    command: bash -c "direnv allow && direnv exec . go run ./cmd/api/..."
+
   tooling:
     build:
       context: .
