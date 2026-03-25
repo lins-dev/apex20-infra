@@ -43,6 +43,14 @@ RUN mkdir -p /home/dev/go && chown -R ${UID}:${GID} /home/dev/go
 # Install TypeScript protoc plugins globally (as root, before USER switch)
 RUN npm install -g @bufbuild/protoc-gen-es @connectrpc/protoc-gen-connect-es
 
+# Install Playwright + Chromium for e2e tests.
+# Browser version must match @playwright/test used in apex20-web.
+# Stored in /opt/playwright-browsers (world-readable) so the dev user can run tests.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
+RUN npm install -g @playwright/test@1.58.2 && \
+    playwright install --with-deps chromium && \
+    chmod -R 755 /opt/playwright-browsers
+
 USER dev
 
 # Configure direnv hook for bash
