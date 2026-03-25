@@ -83,7 +83,8 @@ services:
     environment:
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
-      - NEXT_PUBLIC_API_URL=http://apex20-backend:8787
+      - INTERNAL_API_URL=http://apex20-backend:8787
+      - NEXT_PUBLIC_API_URL=/connect
     command: sh -c "npm install && npx next dev -H 0.0.0.0 --webpack"
 
   backend:
