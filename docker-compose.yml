@@ -81,11 +81,9 @@ services:
     ports:
       - "3020:3000"
     environment:
-      - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
-      - INTERNAL_API_URL=http://apex20-backend:8787
-      - NEXT_PUBLIC_API_URL=/connect
-    command: sh -c "npm install && npx next dev -H 0.0.0.0 --webpack"
+      - VITE_API_URL=http://apex20-backend:8787
+    command: sh -c "npm install && npm run dev"
 
   backend:
     build:
